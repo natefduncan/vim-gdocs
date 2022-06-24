@@ -22,7 +22,6 @@ def read_paragraph_element(element):
         return ''
     return text_run.get('content')
 
-
 def read_structural_elements(elements):
     text = ''
     for value in elements:
@@ -44,12 +43,11 @@ def read_structural_elements(elements):
             text += read_structural_elements(toc.get('content'))
     return text
 
-
 @click.group()
 def cli():
     pass
 
-@click.command()
+@click.command(name="open")
 @click.option("--creds-path", "-C", default="creds/token.json")
 @click.argument("name")
 def open_file(creds_path, name):
@@ -67,13 +65,13 @@ def open_file(creds_path, name):
         batch_requests = generate_batch_updates(starting_content, modified_content)
         docs.documents().batchUpdate(documentId=file_id, body={"requests": batch_requests}).execute()
 
-@click.command()
+@click.command(name="file")
 @click.option("--creds-path", "-C", default="creds/token.json")
 @click.argument("doc-id")
-def file(creds_path, doc_id):
+def file_info(creds_path, doc_id):
     path = os.path.abspath(creds_path)
     docs = get_docs_service(path)
     click.echo(json.dumps(docs.documents().get(documentId=doc_id).execute()))
  
 cli.add_command(open_file)
-cli.add_command(file)
+cli.add_command(file_info)
