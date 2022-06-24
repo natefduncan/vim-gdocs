@@ -20,6 +20,11 @@ def generate_insert(index, text):
                 }
             }
  
+def sort_batch_updates(obj):
+    if "deleteContentRange" in obj:
+        return obj["deleteContentRange"]["range"]["endIndex"]
+    elif "insertText" in obj:
+        return obj["insertText"]["location"]["index"]
 
 def generate_batch_updates(starting_content, modified_content): 
     d = difflib.SequenceMatcher(a=starting_content, b=modified_content)
@@ -36,5 +41,6 @@ def generate_batch_updates(starting_content, modified_content):
             batch.append(generate_insert(i1, text))
         elif tag == "equal":
             pass
-    return batch 
+
+    return sorted(batch, key=sort_batch_updates, reverse=True)
 
