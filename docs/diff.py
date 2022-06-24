@@ -41,6 +41,5 @@ def generate_batch_updates(starting_content, modified_content):
             batch.append(generate_insert(i1, text))
         elif tag == "equal":
             pass
-
     return sorted(batch, key=sort_batch_updates, reverse=True)
 
