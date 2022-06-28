@@ -5,6 +5,7 @@ import sys, tempfile, os
 from subprocess import call
 from docs.ggl import get_docs_service, get_drive_service 
 from docs.diff import generate_batch_updates
+from docs import parsers, compilers
 
 def create_temp_file(content):
     EDITOR = os.environ.get("EDITOR", "vim")
@@ -15,33 +16,6 @@ def create_temp_file(content):
         
         tf.seek(0)
         return tf.read()
-
-def read_paragraph_element(element):
-    text_run = element.get('textRun')
-    if not text_run:
-        return ''
-    return text_run.get('content')
-
-def read_structural_elements(elements):
-    text = ''
-    for value in elements:
-        if 'paragraph' in value:
-            elements = value.get('paragraph').get('elements')
-            for elem in elements:
-                text += read_paragraph_element(elem)
-        elif 'table' in value:
-            # The text in table cells are in nested Structural Elements and tables may be
-            # nested.
-            table = value.get('table')
-            for row in table.get('tableRows'):
-                cells = row.get('tableCells')
-                for cell in cells:
-                    text += read_structural_elements(cell.get('content'))
-        elif 'tableOfContents' in value:
-            # The text in the TOC is also in a Structural Element.
-            toc = value.get('tableOfContents')
-            text += read_structural_elements(toc.get('content'))
-    return text
 
 @click.group()
 def cli():
@@ -59,11 +33,13 @@ def open_file(creds_path, name):
     if files["files"]:
         file_id = files["files"][0]["id"]
         doc = docs.documents().get(documentId=file_id).execute()
-        doc_content = doc.get('body').get('content')
-        starting_content = read_structural_elements(doc_content)
-        modified_content = create_temp_file(bytes(starting_content, "UTF-8"))
-        batch_requests = generate_batch_updates(starting_content, modified_content)
-        docs.documents().batchUpdate(documentId=file_id, body={"requests": batch_requests}).execute()
+        tokens_google = parsers.Google(doc).parse()
+        compiled_markdown = compilers.Markdown(tokens_google).compile()
+        modified_content = create_temp_file(bytes(compiled_markdown, "UTF-8"))
+        tokens_markdown = parsers.Markdown(modified_content.decode("utf-8")).parse()
+        compiled_google = compilers.Google(tokens_markdown).compile()
+        compiled_google.insert(0, compilers.Google.generate_delete(1, tokens_google[-1].end_index-1))
+        docs.documents().batchUpdate(documentId=file_id, body={"requests": compiled_google}).execute()
 
 @click.command(name="file")
 @click.option("--creds-path", "-C", default="creds/token.json")

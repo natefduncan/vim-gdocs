@@ -16,7 +16,7 @@ def generate_insert(index, text):
                 "location": {
                     "index": index + 1
                     }, 
-                "text" : text.decode("utf-8")
+                "text" : text
                 }
             }
  
