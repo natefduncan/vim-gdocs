@@ -4,11 +4,18 @@ from typing import List
 class Token:
     pass
 
+#  @dataclass
+#  class Color:
+    #  red: float
+    #  green: float
+    #  blue: float
+
 @dataclass
 class TextStyle:
     bold: bool = False
     italic: bool = False
     underline: bool = False
+    #  foreground_color: Color = Color(0,0,0)
 
 @dataclass
 class Text(Token):
@@ -20,6 +27,18 @@ class Text(Token):
     def __repr__(self) -> str:
         clean_text = self.text.replace("\n", "\\n")
         return f"Text(\"{clean_text}\", {self.start_index}, {self.end_index})"
+
+@dataclass
+class Link(Token):
+    start_index: int
+    end_index: int
+    text: str
+    url: str
+    style: TextStyle
+
+    def __repr__(self) -> str:
+        clean_text = self.text.replace("\n", "\\n")
+        return f"Link(\"{clean_text}\", {self.start_index}, {self.end_index})"
 
 @dataclass
 class SectionBreak:

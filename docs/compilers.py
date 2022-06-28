@@ -1,6 +1,6 @@
 from typing import List
 from docs.diff import generate_delete
-from docs.tokens import Token, CarriageReturn, Text, Header
+from docs.tokens import Token, CarriageReturn, Text, Header, Link
 
 class Compiler:
     pass
@@ -23,6 +23,8 @@ class Markdown(Compiler):
                 if token.style.underline:
                     formatted_text = f"<u>{formatted_text}</u>"
                 text += formatted_text
+            elif isinstance(token, Link):
+                text += f"[{token.text}]({token.url})"
         return text
 
 class Google(Compiler):
@@ -31,10 +33,11 @@ class Google(Compiler):
 
     def compile(self) -> List[dict]:
         requests = []
-        #  requests.append(self.generate_delete(self.tokens[0].start_index, self.tokens[-1].end_index))
         for token in self.tokens:
             if isinstance(token, Text):
                 requests += self.generate_insert(token)
+            elif isinstance(token, Link):
+                requests += self.generate_insert(token, is_link=True)
             elif isinstance(token, CarriageReturn):
                 requests.append({ 
                     "insertText": {
@@ -61,7 +64,7 @@ class Google(Compiler):
                 }
 
     @staticmethod
-    def generate_insert(token):
+    def generate_insert(token, is_link=False):
         output = []
         output.append({
                 "insertText": {
@@ -71,7 +74,7 @@ class Google(Compiler):
                     "text" : token.text
                     }
                 })
-        output.append({
+        styling = {
             "updateTextStyle": {
                 "fields" : "*", 
                 "range": {
@@ -84,5 +87,28 @@ class Google(Compiler):
                     "underline": token.style.underline
                     }
                 }
-            })
-        return output 
+            }
+        if is_link:
+            styling["updateTextStyle"]["textStyle"]["link"] = {"url": token.url}
+            styling["updateTextStyle"]["textStyle"]["foregroundColor"] = {
+                    "color": {
+                        "rgbColor": {
+                            "red": 0.06666667, 
+                            "green": 0.33333334, 
+                            "blue": 0.8
+                            }
+                        }
+                    }
+        output.append(styling)
+        return output
+
+    @staticmethod
+    def sort_batch_updates(obj):
+        if "deleteContentRange" in obj:
+            return obj["deleteContentRange"]["range"]["endIndex"]
+        elif "insertText" in obj:
+            return obj["insertText"]["location"]["index"]
+        elif "updateTextStyle" in obj:
+            return obj["updateTextStyle"]["range"]["endIndex"]
+
+ 

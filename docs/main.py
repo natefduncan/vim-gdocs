@@ -38,7 +38,8 @@ def open_file(creds_path, name):
         modified_content = create_temp_file(bytes(compiled_markdown, "UTF-8"))
         tokens_markdown = parsers.Markdown(modified_content.decode("utf-8")).parse()
         compiled_google = compilers.Google(tokens_markdown).compile()
-        compiled_google.insert(0, compilers.Google.generate_delete(1, tokens_google[-1].end_index-1))
+        if len(tokens_google) > 1:
+            compiled_google.insert(0, compilers.Google.generate_delete(1, tokens_google[-1].end_index-1))
         docs.documents().batchUpdate(documentId=file_id, body={"requests": compiled_google}).execute()
 
 @click.command(name="file")

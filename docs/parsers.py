@@ -1,5 +1,5 @@
 from typing import List
-from docs.tokens import Token, Text, TextStyle, CarriageReturn, Header
+from docs.tokens import Token, Text, TextStyle, CarriageReturn, Header, Link
 import re
 
 class Parser:
@@ -15,6 +15,18 @@ class Google(Parser):
             if i["textRun"]["content"] == "\n":
                 tokens.append(CarriageReturn(i["startIndex"], i["endIndex"]))
                 text = i["textRun"]["content"]
+            elif "link" in i["textRun"]["textStyle"]:
+                start_index = i["startIndex"]
+                end_index = i["endIndex"]
+                text = i["textRun"]["content"]
+                url = i["textRun"]["textStyle"]["link"]["url"]
+                style=TextStyle(
+                        i["textRun"]["textStyle"].get("bold", False), 
+                        i["textRun"]["textStyle"].get("italic", False), 
+                        i["textRun"]["textStyle"].get("underline", False)
+                        )
+                
+                tokens.append(Link(start_index, end_index, text, url, style))
             else:
                 cr = "\n" in i["textRun"]["content"]
                 if cr:
@@ -57,6 +69,7 @@ class Markdown(Parser):
                 ("ITALIC", r'\*([^\*]+)\*'),
                 ("BOLD_ITALIC", r'\*\*\*([^\*]+)\*\*\*'), 
                 ("NEWLINE", r'\n'),
+                ("LINK", r'(?:__|[*#])|\[(.*?)\]\((.*?)\)'), 
                 ("NORMAL", r'.+')
         ]
  
@@ -77,7 +90,11 @@ class Markdown(Parser):
             elif kind == "NEWLINE":
                 tokens.append(CarriageReturn(start_index, start_index + 1))
                 start_index += 1
+            elif kind == "LINK":
+                text, url = [i for i in mo.groups() if i][1:]
+                end_index = start_index + len(text)
+                tokens.append(Link(start_index, end_index, text, url, TextStyle(underline=True)))
+                start_index += len(text)
             else:
                 continue
         return tokens
-      
