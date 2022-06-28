@@ -69,8 +69,9 @@ class Markdown(Parser):
                 ("ITALIC", r'\*([^\*]+)\*'),
                 ("BOLD_ITALIC", r'\*\*\*([^\*]+)\*\*\*'), 
                 ("NEWLINE", r'\n'),
-                ("LINK", r'(?:__|[*#])|\[(.*?)\]\((.*?)\)'), 
-                ("NORMAL", r'.+')
+                ("LINK", r'\[(.*?)\]\((.*?)\)'), 
+                ("NORMAL", r'[\w\s]+'), 
+                ("SYMBOL", r'.')
         ]
  
     def parse(self):
@@ -80,7 +81,7 @@ class Markdown(Parser):
         for mo in re.finditer(token_re, self.text):
             kind = mo.lastgroup
             value = mo.group()
-            if kind in ["BOLD", "ITALIC", "BOLD_ITALIC", "NORMAL"]:
+            if kind in ["BOLD", "ITALIC", "BOLD_ITALIC", "NORMAL", "SYMBOL"]:
                 is_bold = kind in ["BOLD", "BOLD_ITALIC"]
                 is_italic = kind in ["ITALIC", "BOLD_ITALIC"]
                 text = value.replace("*", "")
