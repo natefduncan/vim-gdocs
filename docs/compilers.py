@@ -1,12 +1,12 @@
-from typing import List
+from typing import List as TList
 from docs.diff import generate_delete
-from docs.tokens import Token, CarriageReturn, Text, Header, Link
+from docs.tokens import Token, CarriageReturn, Text, Header, Link, List, ListItem
 
 class Compiler:
     pass
 
 class Markdown(Compiler):
-    def __init__(self, tokens: List[Token]):
+    def __init__(self, tokens: TList[Token]):
         self.tokens = tokens
 
     def compile(self) -> str:
@@ -25,13 +25,19 @@ class Markdown(Compiler):
                 text += formatted_text
             elif isinstance(token, Link):
                 text += f"[{token.text}]({token.url})"
+            elif isinstance(token, List):
+                for i, list_item in enumerate(token.items):
+                    if token.ordered:
+                        text += f"{i}. {list_item.text}\n"
+                    else:
+                        text += f"- {list_item.text}\n"
         return text
 
 class Google(Compiler):
-    def __init__(self, tokens: List[Token]):
+    def __init__(self, tokens: TList[Token]):
         self.tokens = tokens
 
-    def compile(self) -> List[dict]:
+    def compile(self) -> TList[dict]:
         requests = []
         for token in self.tokens:
             if isinstance(token, Text):
