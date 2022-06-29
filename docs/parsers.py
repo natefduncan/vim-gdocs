@@ -29,14 +29,17 @@ class Google(Parser):
                 tokens.append(Link(start_index, end_index, text, url, style))
             elif paragraph["paragraph"].get("bullet"):
                 text = i["textRun"]["content"].replace("\n", "")
+                start_index = i["startIndex"]
+                end_index = i["endIndex"]
                 list_id = paragraph['paragraph']["bullet"]["listId"]
-                list_item = ListItem(i["startIndex"], i["endIndex"], text)
+                list_item = ListItem(start_index, end_index, text)
                 list_token = next((i for i in self.tokens if isinstance(i, List) and i.list_id == list_id), None)
                 if list_token:
                     list_token.items.append(list_item)
+                    list_token.end_index = end_index
                 else:
                     ordered = self.doc["lists"][list_id]["listProperties"]["nestingLevels"][0].get("glyphType") != None
-                    list_token = List(list_id=list_id, ordered=ordered, items=[list_item])
+                    list_token = List(start_index, end_index, list_id=list_id, ordered=ordered, items=[list_item])
                     tokens.append(list_token)
             else:
                 cr = "\n" in i["textRun"]["content"]
@@ -81,7 +84,8 @@ class Markdown(Parser):
                 ("BOLD_ITALIC", r'\*\*\*([^\*]+)\*\*\*'), 
                 ("NEWLINE", r'\n'),
                 ("LINK", r'\[(.*?)\]\((.*?)\)'), 
-                ("NORMAL", r'[\w\s]+'), 
+                ("UNORDERED_LIST_ITEM", r'\s*- (.*)\s*'), 
+                ("NORMAL", r'[\w ]+'), 
                 ("SYMBOL", r'.')
         ]
  
@@ -89,6 +93,7 @@ class Markdown(Parser):
         token_re = "|".join(f'(?P<{name}>{regex})' for name, regex in self.token_spec)
         start_index = 1
         tokens = []
+        list_id = 0
         for mo in re.finditer(token_re, self.text):
             kind = mo.lastgroup
             value = mo.group()
@@ -106,6 +111,18 @@ class Markdown(Parser):
                 text, url = [i for i in mo.groups() if i][1:]
                 end_index = start_index + len(text)
                 tokens.append(Link(start_index, end_index, text, url, TextStyle(underline=True)))
+                start_index += len(text)
+            elif kind == "UNORDERED_LIST_ITEM":
+                text = [i for i in mo.groups() if i][1]
+                end_index = start_index + len(text) + 2
+                list_entry = ListItem(start_index, end_index, text)
+                if not isinstance(tokens[-1], List):
+                   list_token = List(start_index=start_index, end_index=end_index, list_id=list_id, ordered=False, items=[list_entry])
+                   tokens.append(list_token)
+                   list_id += 1
+                else:
+                    tokens[-1].items.append(list_entry)
+                    tokens[-1].end_index = end_index
                 start_index += len(text)
             else:
                 continue
