@@ -1,5 +1,5 @@
-from typing import List
-from docs.tokens import Token, Text, TextStyle, CarriageReturn, Header, Link
+from typing import List as TList
+from docs.tokens import Token, Text, TextStyle, CarriageReturn, Header, Link, List, ListItem
 import re
 
 class Parser:
@@ -9,7 +9,7 @@ class Google(Parser):
     def __init__(self, doc):
         self.doc = doc
 
-    def parse_paragraph(self, paragraph) -> List[Token]:
+    def parse_paragraph(self, paragraph) -> TList[Token]:
         tokens = []
         for i in paragraph["paragraph"]["elements"]:
             if i["textRun"]["content"] == "\n":
@@ -27,6 +27,17 @@ class Google(Parser):
                         )
                 
                 tokens.append(Link(start_index, end_index, text, url, style))
+            elif paragraph["paragraph"].get("bullet"):
+                text = i["textRun"]["content"].replace("\n", "")
+                list_id = paragraph['paragraph']["bullet"]["listId"]
+                list_item = ListItem(i["startIndex"], i["endIndex"], text)
+                list_token = next((i for i in self.tokens if isinstance(i, List) and i.list_id == list_id), None)
+                if list_token:
+                    list_token.items.append(list_item)
+                else:
+                    ordered = self.doc["lists"][list_id]["listProperties"]["nestingLevels"][0].get("glyphType") != None
+                    list_token = List(list_id=list_id, ordered=ordered, items=[list_item])
+                    tokens.append(list_token)
             else:
                 cr = "\n" in i["textRun"]["content"]
                 if cr:
@@ -51,13 +62,13 @@ class Google(Parser):
                     tokens.append(CarriageReturn(i["endIndex"]-1, i["endIndex"]))
         return tokens
 
-    def parse(self) -> List[Token]:
+    def parse(self) -> TList[Token]:
         content = self.doc.get("body").get("content")
-        output = []
+        self.tokens = []
         for e in content:
             if 'paragraph' in e:
-                output += self.parse_paragraph(e)
-        return output
+                self.tokens += self.parse_paragraph(e)
+        return self.tokens
 
 #  https://github.com/yhfyhf/Markdown-Parser-Python/blob/master/parser.py
 class Markdown(Parser):

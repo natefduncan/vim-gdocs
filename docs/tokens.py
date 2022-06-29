@@ -41,6 +41,18 @@ class Link(Token):
         return f"Link(\"{clean_text}\", {self.start_index}, {self.end_index})"
 
 @dataclass
+class ListItem(Token):
+    start_index: int
+    end_index: int
+    text: str
+
+@dataclass
+class List(Token):
+    list_id: str
+    ordered: bool
+    items: List[ListItem] = field(default_factory=list)
+
+@dataclass
 class SectionBreak:
     end_index: int
 
