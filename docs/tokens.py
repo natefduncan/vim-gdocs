@@ -48,6 +48,8 @@ class ListItem(Token):
 
 @dataclass
 class List(Token):
+    start_index: int
+    end_index: int
     list_id: str
     ordered: bool
     items: List[ListItem] = field(default_factory=list)
