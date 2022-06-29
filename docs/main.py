@@ -1,7 +1,5 @@
-import os
-import json
 import click
-import sys, tempfile, os
+import sys, os, tempfile, glob, json
 from subprocess import call
 from docs.ggl import get_docs_service, get_drive_service 
 from docs.diff import generate_batch_updates
@@ -9,13 +7,17 @@ from docs import parsers, compilers
 
 def create_temp_file(content):
     EDITOR = os.environ.get("EDITOR", "vim")
-    with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
+    with tempfile.NamedTemporaryFile(prefix="docs_", suffix=".md", delete=False) as tf:
         tf.write(content)
         tf.flush()
         call([EDITOR, tf.name])
         
         tf.seek(0)
         return tf.read()
+
+def delete_temp_files():
+    for filename in glob.glob(f"{tempfile.gettempdir()}/docs_*"):
+        os.remove(filename)
 
 @click.group()
 def cli():
@@ -41,6 +43,7 @@ def open_file(creds_path, name):
         if len(tokens_google) > 1:
             compiled_google.insert(0, compilers.Google.generate_delete(1, tokens_google[-1].end_index-1))
         docs.documents().batchUpdate(documentId=file_id, body={"requests": compiled_google}).execute()
+        delete_temp_files()
 
 @click.command(name="file")
 @click.option("--creds-path", "-C", default="creds/token.json")
