@@ -44,7 +44,7 @@ class Link(Token):
 class ListItem(Token):
     start_index: int
     end_index: int
-    text: str
+    text: List[Token] = field(default_factory=list)
 
 @dataclass
 class List(Token):
@@ -65,6 +65,14 @@ class CarriageReturn(Token):
 
     def __repr__(self) -> str:
         return f"CR({self.start_index}, {self.end_index})"
+
+@dataclass
+class Tab(Token):
+    start_index: int
+    end_index: int
+
+    def __repr__(self) -> str:
+        return f"TAB({self.start_index}, {self.end_index})"
 
 @dataclass
 class Header(Token):
