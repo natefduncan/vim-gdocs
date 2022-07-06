@@ -1,6 +1,6 @@
 # Docs
 
-Open and edit Google Docs in Vim.
+Open and edit Google Docs in Vim with Markdown. Currently support for links, bold, italic, and lists. 
 
 ## Installation
 
